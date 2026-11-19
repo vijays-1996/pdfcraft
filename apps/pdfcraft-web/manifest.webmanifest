@@ -1,0 +1,19 @@
+{
+  "name": "PdfCraft",
+  "short_name": "PdfCraft",
+  "description": "The PDF workbench",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1f1f3",
+  "theme_color": "#b70228",
+  "icons": [
+    {
+      "src": "./ai.storyteller.pdfcraft.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

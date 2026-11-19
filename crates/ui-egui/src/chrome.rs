@@ -53,6 +53,10 @@ fn mac_lights_on_right() -> Option<bool> {
 /// reordering, and platform window controls.
 pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
+    let compact = ui.ctx().screen_rect().width() < 600.0;
+    let strip_height = if compact { 44.0 } else { if cfg!(target_os = "macos") && app.integrated_titlebar { MAC_TITLE_BAR } else { TAB_STRIP } };
+    let button = if compact { 36.0 } else { if cfg!(target_os = "macos") && app.integrated_titlebar { 24.0 } else { STRIP_BUTTON } };
+    let tab_h = if compact { 36.0 } else { if cfg!(target_os = "macos") && app.integrated_titlebar { MAC_TITLE_BAR - 2.0 } else { TAB_HEIGHT } };
     // macOS: the strip is the 28 pt title bar, so the traffic lights are centred in it; tabs and
     // buttons shrink to keep a margin above and below.
     let mac = cfg!(target_os = "macos") && app.integrated_titlebar;
@@ -73,9 +77,8 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     } else {
         (Layout::left_to_right(Align::Center), Layout::right_to_left(Align::Center))
     };
-    let (tab_h, button) = if mac { (MAC_TITLE_BAR - 2.0, 24.0) } else { (TAB_HEIGHT, STRIP_BUTTON) };
     egui::Panel::top("tab_strip")
-        .exact_size(if mac { MAC_TITLE_BAR } else { TAB_STRIP })
+        .exact_size(strip_height)
         .frame(egui::Frame::NONE.fill(t.titlebar).inner_margin(egui::Margin { left, right, top: 0, bottom: 0 }))
         .show(ui, |ui| {
             let full = ui.max_rect();
@@ -109,12 +112,20 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     app.combine_tab.focused = false;
                 }
                 // Reserve the three icon buttons, Discord and their gaps outside the scrolling tabs.
-                let controls_width = ui.fonts_mut(|f| f.layout_no_wrap("Discord".into(), theme::medium(13.0), t.text).size().x)
-                    + 3.0 * button
-                    + 54.0
-                    + window_controls::width(&controls.right);
+                let controls_width = if compact {
+                    button + 16.0 + window_controls::width(&controls.right)
+                } else {
+                    ui.fonts_mut(|f| f.layout_no_wrap("Discord".into(), theme::medium(13.0), t.text).size().x)
+                        + 3.0 * button
+                        + 54.0
+                        + window_controls::width(&controls.right)
+                };
                 // Open stays in sight after the tabs: its icon, text and padding, and the gaps around it.
-                let open_width = ui.fonts_mut(|f| f.layout_no_wrap(tl!("Open").into(), theme::medium(13.0), t.text).size().x) + 38.0 + 12.0;
+                let open_width = if compact {
+                    button + 12.0
+                } else {
+                    ui.fonts_mut(|f| f.layout_no_wrap(tl!("Open").into(), theme::medium(13.0), t.text).size().x) + 38.0 + 12.0
+                };
                 let mut tabs_width = (ui.available_width() - controls_width - open_width).max(0.0);
                 // Tabs shrink to share the strip (names end in "…") and scroll only once they reach
                 // their narrowest; then arrows either side say so and step through them.
@@ -286,7 +297,12 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 }
                 ui.add_space(4.0);
                 let tip = crate::commands::command_tip(ui.ctx(), tl!("Open a PDF ({key})"), "file.open");
-                if widgets::ghost_button_sized(ui, "plus", tl!("Open"), tab_h).on_hover_text(tip).clicked() {
+                let open_clicked = if compact {
+                    icons::button(ui, "plus", button, false, tl!("Open"))
+                } else {
+                    widgets::ghost_button_sized(ui, "plus", tl!("Open"), tab_h)
+                };
+                if open_clicked.on_hover_text(tip).clicked() {
                     app.open_dialog();
                 }
                 ui.with_layout(far_end, |ui| {
@@ -302,6 +318,9 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     }
                     if icons::button(ui, "settings", button, false, tl!("Preferences")).clicked() {
                         app.execute("app.preferences");
+                    }
+                    if compact {
+                        return;
                     }
                     let (icon, label) = match app.theme_preference {
                         ThemePreference::System => ("monitor", tl!("Use system setting")),

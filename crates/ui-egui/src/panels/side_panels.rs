@@ -417,6 +417,11 @@ fn keep_resize_edges_off_scrollbars(ui: &mut egui::Ui, host: egui::Id, open: &[P
 
 /// Draws the rail and the open panes. Call after the top bars and before the central panel.
 pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
+    // On phones, docked panes consume too much of the document viewport. Keep the page,
+    // tab strip and mode menu usable, while preserving the saved desktop pane layout.
+    if ui.ctx().screen_rect().width() < 720.0 {
+        return;
+    }
     if let Some(panel) = app.right {
         app.last_right = panel;
     }
